@@ -1,0 +1,8 @@
+{
+    "owner": "LindgreenIT",
+    "name": "testProject",
+    "description": "detter er en test!",
+    "homepage": "https://github.com",
+    "private": true,
+    "is_template": false
+}
