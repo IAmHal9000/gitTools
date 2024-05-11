@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Get the current working directory
 CURRENT_DIR=$(pwd)
 
@@ -35,15 +37,15 @@ make_github_api_request() {
     local data="$3"
 
     # Send the cURL request and capture the HTTP response code
+    local HTTP_RESPONSE
     if [ "$method" = "GET" ]; then
-            echo "Repositories:"
-            # Extract repository names from the response and print them
-            RESPONSE=$(curl -s -X GET \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "$API_ENDPOINT")
-            echo "$RESPONSE" | jq -r '.[] | .name'
-
+        echo "Repositories:"
+        # Extract repository names from the response and print them
+        RESPONSE=$(curl -s -X GET \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "$API_ENDPOINT")
+        echo "$RESPONSE" | jq -r '.[] | .name'
     else
         HTTP_RESPONSE=$(curl -s -X "$method" \
         -H "Authorization: token $GITHUB_TOKEN" \
@@ -52,6 +54,12 @@ make_github_api_request() {
         -w "%{http_code}" \
         -o /dev/null \
         "$endpoint")
+    fi
+
+    # Check for cURL errors
+    if [ $? -ne 0 ]; then
+        echo "Error: cURL request failed."
+        exit 1
     fi
 
     # Interpret the HTTP response code
@@ -85,13 +93,16 @@ delete_repository() {
 
 # Function to list all repositories of the authenticated GitHub user
 list_repositories() {
-    local REPO_DATA_FILE="$CURRENT_DIR/gitTools.json"
     local API_ENDPOINT="https://api.github.com/user/repos"
-    make_github_api_request "GET" "$API_ENDPOINT" "$REPO_DATA_FILE"
+    make_github_api_request "GET" "$API_ENDPOINT"
 }
 
-
 # Parse command line arguments
+if [ $# -lt 2 ]; then
+    echo "Usage: gitTools repo {create|update|delete|list}"
+    exit 1
+fi
+
 case "$1" in
     "repo")
         case "$2" in
@@ -99,8 +110,8 @@ case "$1" in
             "update") update_repository ;;
             "delete") delete_repository ;;
             "list") list_repositories;; 
-            *) echo "Usage: gitTools repo {create|update|delete}"; exit 1 ;;
+            *) echo "Usage: gitTools repo {create|update|delete|list}"; exit 1 ;;
         esac
         ;;
-    *) echo "Usage: gitTools repo {create|update|delete}"; exit 1 ;;
+    *) echo "Usage: gitTools repo {create|update|delete|list}"; exit 1 ;;
 esac
