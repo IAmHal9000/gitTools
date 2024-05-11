@@ -1,4 +1,13 @@
+# Get the current working directory
 CURRENT_DIR=$(pwd)
+
+# Load environment variables from .env file in the current directory
+if [ -f "$CURRENT_DIR/.env" ]; then
+    source "$CURRENT_DIR/.env"
+else
+    echo "Error: .env file not found in the current directory."
+    exit 1
+fi
 
 # Function to interpret HTTP response codes
 interpret_response() {
@@ -26,13 +35,24 @@ make_github_api_request() {
     local data="$3"
 
     # Send the cURL request and capture the HTTP response code
-    HTTP_RESPONSE=$(curl -s -X "$method" \
-    -H "Authorization: token $GITHUB_TOKEN" \
-    -H "Accept: application/vnd.github.v3+json" \
-    -d "@$data" \
-    -w "%{http_code}" \
-    -o /dev/null \
-    "$endpoint")
+    if [ "$method" = "GET" ]; then
+            echo "Repositories:"
+            # Extract repository names from the response and print them
+            RESPONSE=$(curl -s -X GET \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$API_ENDPOINT")
+            echo "$RESPONSE" | jq -r '.[] | .name'
+
+    else
+        HTTP_RESPONSE=$(curl -s -X "$method" \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d "@$data" \
+        -w "%{http_code}" \
+        -o /dev/null \
+        "$endpoint")
+    fi
 
     # Interpret the HTTP response code
     interpret_response "$HTTP_RESPONSE"
@@ -63,6 +83,12 @@ delete_repository() {
     make_github_api_request "DELETE" "$API_ENDPOINT" "/dev/null"
 }
 
+# Function to list all repositories of the authenticated GitHub user
+list_repositories() {
+    local REPO_DATA_FILE="$CURRENT_DIR/gitTools.json"
+    local API_ENDPOINT="https://api.github.com/user/repos"
+    make_github_api_request "GET" "$API_ENDPOINT" "$REPO_DATA_FILE"
+}
 
 
 # Parse command line arguments
@@ -72,6 +98,7 @@ case "$1" in
             "create") create_repository ;;
             "update") update_repository ;;
             "delete") delete_repository ;;
+            "list") list_repositories;; 
             *) echo "Usage: gitTools repo {create|update|delete}"; exit 1 ;;
         esac
         ;;
