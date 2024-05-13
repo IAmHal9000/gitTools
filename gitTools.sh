@@ -1,3 +1,5 @@
+#!/bin/zsh
+
 # Get the current working directory
 CURRENT_DIR=$(pwd)
 
